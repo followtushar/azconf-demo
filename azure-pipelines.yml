@@ -8,7 +8,7 @@ variables:
   storageName: 'ertyuighjkmnb'
   azureServiceConnection: 'MSDN_con'
   resourceGroupName: 'AF-Test-RG'
-  location: 'Central US'
+  location: 'CentralUS'
   templateFile: './azuredeploy.bicep'
 pool:
   vmImage: $(vmImageName)
