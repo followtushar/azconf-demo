@@ -1,6 +1,3 @@
-@minLength(3)
-@maxLength(24)
-
 resource virtualNetwork 'Microsoft.Network/virtualNetworks@2019-11-01' = {
   name: 'examplevnet'
   location: resourceGroup().location
