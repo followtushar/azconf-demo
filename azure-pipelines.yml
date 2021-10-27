@@ -5,7 +5,6 @@ name: Deploy Bicep files
 
 variables:
   vmImageName: 'ubuntu-latest'
-  storageName: 'ertyuighjkmnb'
   azureServiceConnection: 'MSDN_con'
   resourceGroupName: 'AF-Test-RG'
   location: 'CentralUS'
