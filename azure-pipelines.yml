@@ -9,6 +9,7 @@ variables:
   resourceGroupName: 'AF-Test-RG'
   location: 'CentralUS'
   templateFile: './azuredeploy.bicep'
+  storageName: 'azuredevops'
 pool:
   vmImage: $(vmImageName)
 
@@ -21,4 +22,4 @@ steps:
     inlineScript: |
       az --version
       az group create --name $(resourceGroupName) --location $(location)
-      az deployment group create --resource-group $(resourceGroupName) --template-file $(templateFile)
+      az deployment group create --resource-group $(resourceGroupName) --template-file $(templateFile)--parameters storageName=$(storageName)

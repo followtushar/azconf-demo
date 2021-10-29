@@ -1,3 +1,7 @@
+@minLength(3)
+@maxLength(24)
+param storageName string
+
 resource virtualNetwork 'Microsoft.Network/virtualNetworks@2019-11-01' = {
   name: 'examplevnet'
   location: resourceGroup().location
@@ -24,3 +28,11 @@ resource virtualNetwork 'Microsoft.Network/virtualNetworks@2019-11-01' = {
   }
 }
 
+resource exampleStorage 'Microsoft.Storage/storageAccounts@2021-02-01' = {
+  name: storageName
+  location: 'eastus'
+  sku: {
+    name: 'Standard_LRS'
+  }
+  kind: 'StorageV2'
+}
