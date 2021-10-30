@@ -20,5 +20,5 @@ jobs:
         subscriptionId: ${{ secrets.AZURE_SUBSCRIPTION }}
         resourceGroupName: ${{ secrets.AZURE_RG }}
         template: ./azuredeploy.bicep
-        parameters: adminUsername=tushar, adminPassword=Password@123
+        parameters: adminUsername='tushar', adminPassword='Password@123'
         failOnStdErr: false
