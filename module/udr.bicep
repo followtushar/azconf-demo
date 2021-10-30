@@ -12,4 +12,4 @@ resource placeudr 'Microsoft.Network/routeTables@2021-03-01' = {
   }
 }
 
-output udroutput string = placeudr.properties.provisioningState
+output id string = placeudr.properties.resourceGuid
