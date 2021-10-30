@@ -217,6 +217,14 @@ module udrapply 'module/udr.bicep' = {
     udrName: 'udr-${subnetName}'
   }
 }
-
+resource subnetudr 'Microsoft.Network/virtualNetworks/subnets@2021-02-01' = {
+  parent: vn
+  name: subnetName
+  properties: {
+    routeTable: {
+      id: udrapply.name
+    }
+  }
+}
 output hostname string = pip.properties.dnsSettings.fqdn
-output udr string = udrapply.outputs.udroutput
+output udr string = udrapply.outputs.id
