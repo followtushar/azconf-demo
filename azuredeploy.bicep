@@ -1,193 +1,105 @@
-param virtualMachineSize string
+@description('Username for the Virtual Machine.')
 param adminUsername string
 
+@description('Password for the Virtual Machine.')
+@minLength(12)
 @secure()
 param adminPassword string
-param storageAccountType string
+
+@description('Unique DNS Name for the Public IP used to access the Virtual Machine.')
+param dnsLabelPrefix string = toLower('${vmName}-${uniqueString(resourceGroup().id, vmName)}')
+
+@description('Name for the Public IP used to access the Virtual Machine.')
+param publicIpName string = 'myPublicIP'
+
+@description('Allocation method for the Public IP used to access the Virtual Machine.')
+@allowed([
+  'Dynamic'
+  'Static'
+])
+param publicIPAllocationMethod string = 'Dynamic'
+
+@description('SKU for the Public IP used to access the Virtual Machine.')
+@allowed([
+  'Basic'
+  'Standard'
+])
+param publicIpSku string = 'Basic'
+
+@description('The Windows version for the VM. This will pick a fully patched image of this given Windows version.')
+@allowed([
+  '2008-R2-SP1'
+  '2012-Datacenter'
+  '2012-R2-Datacenter'
+  '2016-Nano-Server'
+  '2016-Datacenter-with-Containers'
+  '2016-Datacenter'
+  '2019-Datacenter'
+  '2019-Datacenter-Core'
+  '2019-Datacenter-Core-smalldisk'
+  '2019-Datacenter-Core-with-Containers'
+  '2019-Datacenter-Core-with-Containers-smalldisk'
+  '2019-Datacenter-smalldisk'
+  '2019-Datacenter-with-Containers'
+  '2019-Datacenter-with-Containers-smalldisk'
+])
+param OSVersion string = '2019-Datacenter'
+
+@description('Size of the virtual machine.')
+param vmSize string = 'Standard_D2_v3'
+
+@description('Location for all resources.')
 param location string = resourceGroup().location
 
-var virtualMachineName = 'VM-MultiNic'
-var nic1Name = 'nic-1'
-var nic2Name = 'nic-2'
-var virtualNetworkName = 'virtualNetwork'
-var subnet1Name = 'subnet-1'
-var subnet2Name = 'subnet-2'
-var publicIPAddressName = 'publicIp'
-var diagStorageAccountName = 'diags${resourceGroup().id}'
-var networkSecurityGroupName = 'NSG'
-var networkSecurityGroupName2 = '${subnet2Name}-nsg'
+@description('Name of the virtual machine.')
+param vmName string = 'simple-vm'
 
+var storageAccountName = 'bootdiags${uniqueString(resourceGroup().id)}'
+var nicName = 'myVMNic'
+var addressPrefix = '10.0.0.0/16'
+var subnetName = 'Subnet'
+var subnetPrefix = '10.0.0.0/24'
+var virtualNetworkName = 'MyVNET'
+var networkSecurityGroupName = 'default-NSG'
 
-
-
-// This is the virtual machine that you're building.
-resource vm 'Microsoft.Compute/virtualMachines@2020-06-01' = {
-  name: virtualMachineName
-  location: location
-  properties: {
-    osProfile: {
-      computerName: virtualMachineName
-      adminUsername: adminUsername
-      adminPassword: adminPassword
-      windowsConfiguration: {
-        provisionVMAgent: true
-      }
-    }
-    hardwareProfile: {
-      vmSize: virtualMachineSize
-    }
-    storageProfile: {
-      imageReference: {
-        publisher: 'MicrosoftWindowsServer'
-        offer: 'WindowsServer'
-        sku: '2016-Datacenter'
-        version: 'latest'
-      }
-      osDisk: {
-        createOption: 'FromImage'
-      }
-      dataDisks: []
-    }
-    networkProfile: {
-      networkInterfaces: [
-        {
-          properties: {
-            primary: true
-          }
-          id: nic1.id
-        }
-        {
-          properties: {
-            primary: false
-          }
-          id: nic2.id
-        }
-      ]
-    }
-    diagnosticsProfile: {
-      bootDiagnostics: {
-        enabled: true
-        storageUri: diagsAccount.properties.primaryEndpoints.blob
-      }
-    }
-  }
-}
-
-resource diagsAccount 'Microsoft.Storage/storageAccounts@2019-06-01' = {
-  name: diagStorageAccountName
+resource stg 'Microsoft.Storage/storageAccounts@2021-04-01' = {
+  name: storageAccountName
   location: location
   sku: {
-    name: storageAccountType
+    name: 'Standard_LRS'
   }
   kind: 'Storage'
 }
 
-// Simple Network Security Group for subnet2
-resource nsg2 'Microsoft.Network/networkSecurityGroups@2020-06-01' = {
-  name: networkSecurityGroupName2
+resource pip 'Microsoft.Network/publicIPAddresses@2021-02-01' = {
+  name: publicIpName
   location: location
-  properties: {}
-}
-
-// This will build a Virtual Network.
-resource vnet 'Microsoft.Network/virtualNetworks@2020-06-01' = {
-  name: virtualNetworkName
-  location: location
-  properties: {
-    addressSpace: {
-      addressPrefixes: [
-        '10.0.0.0/16'
-      ]
-    }
-    subnets: [
-      {
-        name: subnet1Name
-        properties: {
-          addressPrefix: '10.0.0.0/24'
-        }
-      }
-      {
-        name: subnet2Name
-        properties: {
-          addressPrefix: '10.0.1.0/24'
-          networkSecurityGroup: {
-            id: nsg2.id
-          }
-        }
-      }
-    ]
+  sku: {
+    name: publicIpSku
   }
-}
-
-// This will be your Primary NIC
-resource nic1 'Microsoft.Network/networkInterfaces@2020-06-01' = {
-  name: nic1Name
-  location: location
   properties: {
-    ipConfigurations: [
-      {
-        name: 'ipconfig1'
-        properties: {
-          subnet: {
-            id: '${vnet.id}/subnets/${subnet1Name}'
-          }
-          privateIPAllocationMethod: 'Dynamic'
-          publicIPAddress: {
-            id: pip.id
-          }
-        }
-      }
-    ]
-    networkSecurityGroup: {
-      id: nsg.id
+    publicIPAllocationMethod: publicIPAllocationMethod
+    dnsSettings: {
+      domainNameLabel: dnsLabelPrefix
     }
   }
 }
 
-// This will be your Secondary NIC
-resource nic2 'Microsoft.Network/networkInterfaces@2020-06-01' = {
-  name: nic2Name
-  location: location
-  properties: {
-    ipConfigurations: [
-      {
-        name: 'ipconfig1'
-        properties: {
-          subnet: {
-            id: '${vnet.id}/subnets/${subnet2Name}'
-          }
-          privateIPAllocationMethod: 'Dynamic'
-        }
-      }
-    ]
-  }
-}
-
-// Public IP for your Primary NIC
-resource pip 'Microsoft.Network/publicIPAddresses@2020-06-01' = {
-  name: publicIPAddressName
-  location: location
-  properties: {
-    publicIPAllocationMethod: 'Dynamic'
-  }
-}
-
-// Network Security Group (NSG) for your Primary NIC
-resource nsg 'Microsoft.Network/networkSecurityGroups@2020-06-01' = {
+resource securityGroup 'Microsoft.Network/networkSecurityGroups@2021-02-01' = {
   name: networkSecurityGroupName
   location: location
   properties: {
     securityRules: [
       {
-        name: 'default-allow-rdp'
+        name: 'default-allow-3389'
         properties: {
           priority: 1000
-          sourceAddressPrefix: '*'
-          protocol: 'Tcp'
-          destinationPortRange: '3389'
           access: 'Allow'
           direction: 'Inbound'
+          destinationPortRange: '3389'
+          protocol: 'Tcp'
           sourcePortRange: '*'
+          sourceAddressPrefix: '*'
           destinationAddressPrefix: '*'
         }
       }
@@ -195,4 +107,97 @@ resource nsg 'Microsoft.Network/networkSecurityGroups@2020-06-01' = {
   }
 }
 
-output publicIp string = pip.properties.ipAddress
+resource vn 'Microsoft.Network/virtualNetworks@2021-02-01' = {
+  name: virtualNetworkName
+  location: location
+  properties: {
+    addressSpace: {
+      addressPrefixes: [
+        addressPrefix
+      ]
+    }
+  }
+}
+
+resource subnet 'Microsoft.Network/virtualNetworks/subnets@2021-02-01' = {
+  parent: vn
+  name: subnetName
+  properties: {
+    addressPrefix: subnetPrefix
+    networkSecurityGroup: {
+      id: securityGroup.id
+    }
+  }
+}
+
+resource nic 'Microsoft.Network/networkInterfaces@2021-02-01' = {
+  name: nicName
+  location: location
+  properties: {
+    ipConfigurations: [
+      {
+        name: 'ipconfig1'
+        properties: {
+          privateIPAllocationMethod: 'Dynamic'
+          publicIPAddress: {
+            id: pip.id
+          }
+          subnet: {
+            id: subnet.id
+          }
+        }
+      }
+    ]
+  }
+}
+
+resource vm 'Microsoft.Compute/virtualMachines@2021-03-01' = {
+  name: vmName
+  location: location
+  properties: {
+    hardwareProfile: {
+      vmSize: vmSize
+    }
+    osProfile: {
+      computerName: vmName
+      adminUsername: adminUsername
+      adminPassword: adminPassword
+    }
+    storageProfile: {
+      imageReference: {
+        publisher: 'MicrosoftWindowsServer'
+        offer: 'WindowsServer'
+        sku: OSVersion
+        version: 'latest'
+      }
+      osDisk: {
+        createOption: 'FromImage'
+        managedDisk: {
+          storageAccountType: 'StandardSSD_LRS'
+        }
+      }
+      dataDisks: [
+        {
+          diskSizeGB: 1023
+          lun: 0
+          createOption: 'Empty'
+        }
+      ]
+    }
+    networkProfile: {
+      networkInterfaces: [
+        {
+          id: nic.id
+        }
+      ]
+    }
+    diagnosticsProfile: {
+      bootDiagnostics: {
+        enabled: true
+        storageUri: stg.properties.primaryEndpoints.blob
+      }
+    }
+  }
+}
+
+output hostname string = pip.properties.dnsSettings.fqdn
