@@ -2,7 +2,6 @@
 param adminUsername string
 
 @description('Password for the Virtual Machine.')
-@minLength(12)
 @secure()
 param adminPassword string
 
