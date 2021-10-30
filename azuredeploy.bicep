@@ -199,4 +199,24 @@ resource vm 'Microsoft.Compute/virtualMachines@2021-03-01' = {
   }
 }
 
+module udrapply 'module/udr.bicep' = {
+  name:'udrDeploy'
+  params:{
+    udrLocation: location
+    routes: [
+      {
+      id: 1
+      name: 'tointernet'
+      properties: {
+        addressPrefix: '0.0.0.0/0'
+        nextHopIpAddress: '0.0.0.0'
+        nextHopType: 'Virtualappliance'
+      }
+    }
+  ]
+    udrName: 'udr-${subnetName}'
+  }
+}
+
 output hostname string = pip.properties.dnsSettings.fqdn
+output udr string = udrapply.outputs.udroutput
